@@ -1,0 +1,9 @@
+cff-version: 1.2.0 
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "van der Schans"
+  given-names: "Martin"
+title: "SpiNopt: A Scipy interface to NLOPT"
+version: 24.05
+date-released: 2024-05-16
+url: "https://github.com/mvds314/spinopt"
