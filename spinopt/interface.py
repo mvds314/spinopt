@@ -25,7 +25,7 @@ class NLOptimizer:
         kwargs.setdefault("global_ub", None)
         kwargs.setdefault("constraints", None)
         self._kwargs = kwargs
-        assert isinstance(objective_func, callable)
+        assert callable(objective_func), "Objective function should be a function"
         self.objective_func = objective_func
         self.x0 = np.asanyarray(x0)
 
@@ -86,9 +86,9 @@ class NLOptimizer:
         return self._kwargs.get("constraint_tol", self.xtol_abs / 10)
 
     @staticmethod
-    def convert_1d_constraint(con):
+    def convert_scalar_constraint(con):
         """
-        Convert a one-dimensional Scipy constraint, i.e., a constraints that maps to a scalar, to NLOPT format
+        Convert a scalar valued Scipy constraint, i.e., a constraints that maps to a scalar, to NLOPT format
         """
 
         def f(x, grad=None):
@@ -102,10 +102,12 @@ class NLOptimizer:
                 x, *args
             )  # sign accounts for difference between geq 0 and leq 0 constraints
 
+        return f
+
     @staticmethod
-    def convert_nd_constraint(con):
+    def convert_vector_constraint(con):
         """
-        Convert a multi-dimensional Scipy constraint, i.e., a constraints that maps to a Rn, to NLOPT format
+        Convert a vector valued Scipy constraint, i.e., a constraints that maps to a Rn, to NLOPT format
         """
 
         def f(result, x, grad=None):
@@ -117,7 +119,10 @@ class NLOptimizer:
                     raise NotImplementedError("Gradient should be specified")
             result[:] = -con["fun"](x, *args)
 
-    def _add_constraints(self):
+        return f
+
+    @classmethod
+    def _add_constraints(cls, opt, constraints, x, constraint_tol):
         """
         Adds constraints in scipy format, i.e., as a list of dictionaries with fields:
 
@@ -147,29 +152,32 @@ class NLOptimizer:
         -------
         opt
         """
-        for con in self.constraints:
+        for con in constraints:
             assert isinstance(con, dict), "Constraints should be dictionaries"
             assert {"type", "fun"}.issubset(con.keys())
             args = con.get("args", [])
-            y = con["fun"](self.x0, *args)
+            y = con["fun"](x, *args)
             if isinstance(y, float):
-                f = self.convert_1d_constraint(con)
+                f = cls.convert_scalar_constraint(con)
                 if con["type"] == "ineq":
-                    self.opt.add_inequality_constraint(f, self.constraint_tol)
+                    opt.add_inequality_constraint(f, constraint_tol)
                 elif con["type"] == "eq":
-                    self.opt.add_equality_constraint(f, self.constraint_tol)
+                    opt.add_equality_constraint(f, constraint_tol)
+                else:
+                    raise ValueError("Invalid constraint type")
             else:
                 y = np.array(y)
-                f = self.convert_nd_constraint(con)
+                f = cls.convert_vector_constraint(con)
                 if con["type"] == "ineq":
-                    self.opt.add_inequality_mconstraint(
-                        f, np.full(y.shape[-1], self.constraint_tol)
-                    )
+                    opt.add_inequality_mconstraint(f, np.full(y.shape[-1], constraint_tol))
                 elif con["type"] == "eq":
-                    self.opt.add_equality_mconstraint(f, np.full(y.shape[-1], self.constraint_tol))
+                    opt.add_equality_mconstraint(f, np.full(y.shape[-1], constraint_tol))
+                else:
+                    raise ValueError("Invalid constraint type")
+            return opt
 
     @property
-    def get_nlopt_optimizer(self):
+    def opt(self):
         if not hasattr(self, "_opt"):
             local_opt = None
             if self.backend.lower() == "cobyla":
@@ -237,9 +245,9 @@ class NLOptimizer:
                 opt.set_local_optimizer(local_opt)
             if self.objective_func is not None:
                 opt.set_min_objective(self.objective_func)
-            self._opt = opt
             if self.constraints is not None:
-                self._add_constraints()
+                opt = self._add_constraints(opt, self.constraints, self.x0, self.constraint_tol)
+            self._opt = opt
         return self._opt
 
     def minimize(self, x0=None):
@@ -255,13 +263,22 @@ class NLOptimizer:
         except Exception:
             x = x0
         res = NLOptOptimizationResult(x, self.opt, x0)
-        # Reset the optimizer so that it can be reused for a new optimization
-        del self._opt
         return res
 
 
-# TODO: can the optimizer be reused or not?
-# TODO: in that case we should do something about it
+_msg_text = {
+    1: "NLOPT_SUCCESS, generic success return value.",
+    2: "NLOPT_STOPVAL_REACHED, optimization stopped because stopval (above) was reached.",
+    3: "NLOPT_FTOL_REACHED, optimization stopped because ftol_rel or ftol_abs (above) was reached.",
+    4: "NLOPT_XTOL_REACHED, optimization stopped because xtol_rel or xtol_abs (above) was reached.",
+    5: "NLOPT_MAXEVAL_REACHED, optimization stopped because maxeval (above) was reached.",
+    6: "NLOPT_MAXTIME_REACHED, optimization stopped because maxtime (above) was reached.",
+    -1: "NLOPT_FAILURE, generic failure code.",
+    -2: "NLOPT_INVALID_ARGS, invalid arguments (e.g. lower bounds are bigger than upper bounds, an unknown algorithm was specified, etcetera).",
+    -3: "NLOPT_OUT_OF_MEMORY, ran out of memory.",
+    -4: "NLOPT_ROUNDOFF_LIMITED: Halted because roundoff errors limited progress. (In this case, the optimization still typically returns a useful result.",
+    -5: "NLOPT_FORCED_STOP, halted because of a forced termination: the user called nlopt_force_stop(opt) on the optimization’s nlopt_opt object opt from the user’s objective function or constraints.",
+}
 
 
 class NLOptOptimizationResult:
@@ -278,39 +295,23 @@ class NLOptOptimizationResult:
         self._nlopt_optimizer = nlopt_optimizer
         self._x = x
         self._x0 = x0
+        self._message_code = nlopt_optimizer.last_optimize_result()
+        self._fx = nlopt_optimizer.last_optimum_value()
+        self._its = nlopt_optimizer.get_numevals()
 
     @property
     def success(self):
-        return self._nlopt_optimizer.last_optimize_result() > 0
-
-    @property
-    def _message_code(self):
-        return self._nlopt_optimizer.last_optimize_result()
+        return self._message_code > 0
 
     @property
     def message(self):
-        msg_text = {
-            1: "NLOPT_SUCCESS, generic success return value.",
-            2: "NLOPT_STOPVAL_REACHED, optimization stopped because stopval (above) was reached.",
-            3: "NLOPT_FTOL_REACHED, optimization stopped because ftol_rel or ftol_abs (above) was reached.",
-            4: "NLOPT_XTOL_REACHED, optimization stopped because xtol_rel or xtol_abs (above) was reached.",
-            5: "NLOPT_MAXEVAL_REACHED, optimization stopped because maxeval (above) was reached.",
-            6: "NLOPT_MAXTIME_REACHED, optimization stopped because maxtime (above) was reached.",
-            -1: "NLOPT_FAILURE, generic failure code.",
-            -2: "NLOPT_INVALID_ARGS, invalid arguments (e.g. lower bounds are bigger than upper bounds, an unknown algorithm was specified, etcetera).",
-            -3: "NLOPT_OUT_OF_MEMORY, ran out of memory.",
-            -4: "NLOPT_ROUNDOFF_LIMITED: Halted because roundoff errors limited progress. (In this case, the optimization still typically returns a useful result.",
-            -5: "NLOPT_FORCED_STOP, halted because of a forced termination: the user called nlopt_force_stop(opt) on the optimization’s nlopt_opt object opt from the user’s objective function or constraints.",
-        }
-        return msg_text[self._message_code]
+        return _msg_text.get(self._message_code, None)
 
     @property
     def fx(self):
         """
         The final value of the objective function.
         """
-        if not hasattr(self, "_fx"):
-            self._fx = self._nlopt_optimizer.last_optimum_value()
         return self._fx
 
     @property
@@ -329,8 +330,6 @@ class NLOptOptimizationResult:
         """
         The number of function evaluations.
         """
-        if not hasattr(self, "_its"):
-            self._its = self._nlopt_optimizer.get_numevals()
         return self._its
 
     @property
