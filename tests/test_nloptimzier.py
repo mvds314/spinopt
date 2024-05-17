@@ -42,9 +42,6 @@ def test_nloptimizer():
     assert np.allclose(res.x, [-2 / 3, 1 / 3, 4 / 3], atol=1e-5)
 
 
-# TODO: fix this unittest
-
-
 if __name__ == "__main__":
     if True:
         pytest.main(

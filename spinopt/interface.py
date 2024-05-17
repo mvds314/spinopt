@@ -14,7 +14,7 @@ class NLOptimizer:
     """
 
     def __init__(self, objective_func, x0, **kwargs):
-        kwargs.setdefault("self.backend", "slsqp")
+        kwargs.setdefault("backend", "slsqp")
         kwargs.setdefault("xtol_rel", 1e-8)
         kwargs.setdefault("xtol_abs", 1e-8)
         kwargs.setdefault("ftol_rel", 1e-8)
@@ -25,9 +25,21 @@ class NLOptimizer:
         kwargs.setdefault("global_ub", None)
         kwargs.setdefault("constraints", None)
         self._kwargs = kwargs
-        assert callable(objective_func), "Objective function should be a function"
         self.objective_func = objective_func
         self.x0 = np.asanyarray(x0)
+
+    @property
+    def objective_func(self):
+        if not hasattr(self, "_objective_func"):
+            self._objective_func = None
+        return self._objective_func
+
+    @objective_func.setter
+    def objective_func(self, val):
+        assert val is None or callable(val), "Objective function should be a function"
+        self._objective_func = val
+        if hasattr(self, "_opt"):
+            self.opt.set_min_objective(val)
 
     @property
     def N(self):
@@ -37,7 +49,7 @@ class NLOptimizer:
 
     @property
     def backend(self):
-        return self._kwargs["self.backend"]
+        return self._kwargs["backend"]
 
     @property
     def xtol_rel(self):
@@ -258,6 +270,7 @@ class NLOptimizer:
             x0 = self.x0
         else:
             assert len(x0) == self.N
+        assert self.objective_func is not None, "Objective function should be specified"
         try:
             x = self.opt.optimize(x0)
         except Exception:
