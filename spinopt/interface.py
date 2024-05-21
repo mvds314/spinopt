@@ -20,7 +20,7 @@ class NLOptimizer:
         kwargs.setdefault("ftol_rel", 1e-8)
         kwargs.setdefault("ftol_abs", 1e-8)
         kwargs.setdefault("maxeval", 10000)
-        kwargs.setdefault("maxtime", 300)
+        kwargs.setdefault("maxtime", 600)
         kwargs.setdefault("global_lb", None)
         kwargs.setdefault("global_ub", None)
         kwargs.setdefault("constraints", None)
@@ -95,12 +95,13 @@ class NLOptimizer:
 
     @property
     def constraint_tol(self):
-        return self._kwargs.get("constraint_tol", self.xtol_abs / 10)
+        return self._kwargs.get("constraint_tol", self.xtol_abs / 100)
 
     @staticmethod
     def convert_scalar_constraint(con):
         """
-        Convert a scalar valued Scipy constraint, i.e., a constraints that maps to a scalar, to NLOPT format
+        Convert a scalar valued Scipy constraint, i.e.,
+        a constraints that maps to a scalar, to NLOPT format.
         """
 
         def f(x, grad=None):
@@ -119,7 +120,8 @@ class NLOptimizer:
     @staticmethod
     def convert_vector_constraint(con):
         """
-        Convert a vector valued Scipy constraint, i.e., a constraints that maps to a Rn, to NLOPT format
+        Convert a vector valued Scipy constraint, i.e.,
+        a constraints that maps to Rn, to NLOPT format
         """
 
         def f(result, x, grad=None):
@@ -130,6 +132,7 @@ class NLOptimizer:
                 else:
                     raise NotImplementedError("Gradient should be specified")
             result[:] = -con["fun"](x, *args)
+            return result
 
         return f
 
@@ -186,7 +189,7 @@ class NLOptimizer:
                     opt.add_equality_mconstraint(f, np.full(y.shape[-1], constraint_tol))
                 else:
                     raise ValueError("Invalid constraint type")
-            return opt
+        return opt
 
     @property
     def opt(self):
@@ -314,7 +317,7 @@ class NLOptOptimizationResult:
 
     @property
     def success(self):
-        return self._message_code > 0
+        return self._message_code > 0 or self._message_code == -4
 
     @property
     def message(self):
