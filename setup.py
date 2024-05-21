@@ -12,7 +12,7 @@ setup(
     license="BSD",
     keywords="Optimization",
     packages=["spinopt"],
-    install_requires=["numpy<2", "nlopt"],
+    install_requires=["nlopt", "numpy"],
     long_description=long_description,
     long_description_content_type="text/markdown",
 )
