@@ -1,4 +1,4 @@
-# Fast evaluation of multivariate normal distributions
+# SpiNopt: a Scipy optimization interface to NLOPT
 
 For optimization, everyone starts out with the [Scipy optimization library](https://docs.scipy.org/doc/scipy/tutorial/optimize.html), but, at some point, you might want to try something else.
 [NLOPT](https://nlopt.readthedocs.io/en/latest/) is a great library, but can be quite a hassle rewrite your code to use it.
