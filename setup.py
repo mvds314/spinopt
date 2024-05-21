@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="spinopt",
-    version="24.05.0",
+    version="24.5.0",
     description="Scipy interface to NLOPT",
     url="https://github.com/mvds314/spinopt",
     author="Martin van der Schans",
