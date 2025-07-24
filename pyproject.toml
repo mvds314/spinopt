@@ -1,7 +1,7 @@
 [project]
 name = "spinopt"
 description = "Scipy interface to NLOPT"
-version = "24.5.0"
+version = "24.7.0"
 authors = [{ name = "Martin van der Schans" }]
 readme = "README.md"
 keywords = ["Optimization"]
