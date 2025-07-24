@@ -1,0 +1,35 @@
+[project]
+name = "spinopt"
+description = "Scipy interface to NLOPT"
+version = "24.5.0"
+authors = [{ name = "Martin van der Schans" }]
+readme = "README.md"
+keywords = ["Optimization"]
+dependencies = ["numpy", "nlopt"]
+license = { text = "BSD-3-Clause" }
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[project.urls]
+repository = "https://github.com/mvds314/spinopt"
+
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.ruff]
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "F", "W"] # Pycodestyle, pyflakes, bugbear, and isort
+ignore = [
+  "E203",
+  "E501",
+  "E731",
+] # Ignore common conflicts with Black, and lamda expressions
+
+[tool.pytest.ini_options]
+markers = [
+  "tofix: marks tests as to be fixed (deselect with '-m \"not tofix\"')",
+]
