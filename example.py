@@ -14,7 +14,7 @@ def my_easy_func(x, grad):
 
 
 # invalid without constraints
-opt = NLOptimizer(my_easy_func, np.nan * np.zeros(dim))
+opt = NLOptimizer(my_easy_func, np.nan * np.zeros(dim), backend="slsqp")
 res = opt.minimize()
 assert res.success
 assert np.isnan(res.x).all()
