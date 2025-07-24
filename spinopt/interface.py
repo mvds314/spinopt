@@ -241,6 +241,14 @@ class NLOptimizer:
                 else:
                     local_opt = nlopt.opt(nlopt.LD_LBFGS, self.N)
                     opt = nlopt.opt(nlopt.AUGLAG, self.N)
+            elif self.backend.lower() == "tnewton":
+                opt = nlopt.opt(nlopt.LD_TNEWTON, self.N)
+            elif self.backend.lower() == "tnewton_precond":
+                opt = nlopt.opt(nlopt.LD_TNEWTON_PRECOND, self.N)
+            elif self.backend.lower() == "tnewton_precond_restart":
+                opt = nlopt.opt(nlopt.LD_TNEWTON_PRECOND_RESTART, self.N)
+            elif self.backend.lower() == "tnewton_restart":
+                opt = nlopt.opt(nlopt.LD_TNEWTON_RESTART, self.N)
             else:
                 raise Exception("Unsupported NLOPT backend")
             if self.global_lb is not None:
