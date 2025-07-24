@@ -4,6 +4,6 @@ authors:
 - family-names: "van der Schans"
   given-names: "Martin"
 title: "SpiNopt: A Scipy interface to NLOPT"
-version: 24.7.1
+version: 24.7.2
 date-released: 2024-05-16
 url: "https://github.com/mvds314/spinopt"
