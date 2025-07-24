@@ -331,6 +331,13 @@ class NLOptOptimizationResult:
         return self._fx
 
     @property
+    def fun(self):
+        """
+        Alias for fx to ensure compatibility with Scipy interface.
+        """
+        return self.fx
+
+    @property
     def x0(self):
         return self._x0
 
@@ -347,6 +354,13 @@ class NLOptOptimizationResult:
         The number of function evaluations.
         """
         return self._its
+
+    @property
+    def nfev(self):
+        """
+        Alias for its to ensure compatibility with Scipy interface.
+        """
+        return self.its
 
     @property
     def scipy_result(self):
