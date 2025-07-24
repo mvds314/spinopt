@@ -393,7 +393,7 @@ class NLOptOptimizationResult:
             "imode": self._message_code,
             "smode": self.message,
         }
-        sol["x"] = self.optim_value
+        sol["x"] = self.x
         sol["status"] = "optimal" if self.success else self.message
         sol["solver_backend"] = "nlopt"
         return sol
