@@ -235,8 +235,12 @@ class NLOptimizer:
                 local_opt = nlopt.opt(nlopt.LD_MMA, self.N)
                 opt = nlopt.opt(nlopt.AUGLAG_EQ, self.N)
             elif self.backend.lower() == "lbfgs":
-                local_opt = nlopt.opt(nlopt.LD_LBFGS, self.N)
-                opt = nlopt.opt(nlopt.AUGLAG, self.N)
+                # global optimization can only be used with bound constraints
+                if self.global_lb is None or self.global_ub is None:
+                    opt = nlopt.opt(nlopt.LD_LBFGS, self.N)
+                else:
+                    local_opt = nlopt.opt(nlopt.LD_LBFGS, self.N)
+                    opt = nlopt.opt(nlopt.AUGLAG, self.N)
             else:
                 raise Exception("Unsupported NLOPT backend")
             if self.global_lb is not None:
